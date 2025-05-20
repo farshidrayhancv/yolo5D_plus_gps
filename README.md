@@ -1,6 +1,3 @@
-Below is a **drop-in replacement** for your current `README.md`.
-It keeps all the sections you already wrote, updates wording to reflect the latest implementation, and embeds the Mermaid pipeline diagram in GitHub-flavoured markdown.
-
 ````markdown
 # 5D YOLOv8 + GPS — Multi-Modal Object Detection and Localisation
 
