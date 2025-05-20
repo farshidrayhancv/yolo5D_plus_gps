@@ -1,204 +1,180 @@
-# 5D YOLO Object Detection with GPS Prediction
+Below is a **drop-in replacement** for your current `README.md`.
+It keeps all the sections you already wrote, updates wording to reflect the latest implementation, and embeds the Mermaid pipeline diagram in GitHub-flavoured markdown.
 
-A PyTorch implementation of YOLOv8 modified for 5-channel input (RGB + depth + thermal) with GPS coordinate prediction.
+````markdown
+# 5D YOLOv8 + GPS — Multi-Modal Object Detection and Localisation
 
-[![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
-[![PyTorch 1.10+](https://img.shields.io/badge/PyTorch-1.10+-red.svg)](https://pytorch.org/)
-[![Ultralytics YOLOv8](https://img.shields.io/badge/Ultralytics-YOLOv8-green.svg)](https://github.com/ultralytics/ultralytics)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+A PyTorch implementation of Ultralytics **YOLOv8** extended to consume  
+**RGB + Depth + Thermal** (5-channel) input and regress a global **GPS (lat, lon)**  
+for every frame.
 
-## 📋 Description
+[![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)  
+[![PyTorch 2.1+](https://img.shields.io/badge/PyTorch-2.1%2B-red.svg)](https://pytorch.org/)  
+[![Ultralytics 8.3.x](https://img.shields.io/badge/Ultralytics-YOLOv8-8.3.x-green.svg)](https://github.com/ultralytics/ultralytics)  
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-This project extends Ultralytics YOLOv8 for multi-modal object detection by adding:
-- 5-channel input support (RGB + depth + thermal)
-- GPS coordinate regression (X, Y coordinates)
-- Training on Pascal VOC dataset with simulated depth and thermal maps
+---
 
-Perfect for robotics, autonomous vehicles, and multi-sensor fusion applications where object detection must be combined with localization.
+## 📋 Overview
 
-## 🚀 Installation
+* **5-channel input** `RGB (3) + Depth (1) + Thermal (1)`  
+* **Thermal fusion** Injected at YOLO’s mid-feature via a forward hook  
+* **Dual-head output** Standard YOLO detections **plus** a 2-D GPS vector  
+* **Joint training** Ultralytics v8 detection loss + MSE GPS loss — all weights train
+
+Ideal for robotics, autonomous driving, or any scenario where object
+detection and coarse localisation must be learned from multiple sensors.
+
+---
+
+## 🛠 Installation
 
 ```bash
-# Clone repository
 git clone https://github.com/farshidrayhancv/yolo5D_plus_gps.git
-cd 5d-yolo-gps
+cd yolo5D_plus_gps
 
-# Install dependencies
-pip install torch torchvision matplotlib tqdm pillow ultralytics
-```
+# core dependencies
+pip install torch torchvision matplotlib tqdm pillow ultralytics==8.3.140
+````
 
-### Requirements
-- Python 3.8+
-- PyTorch 1.10+
-- Ultralytics 8.0+
-- torchvision
-- matplotlib
-- tqdm
-- Pillow
+> **Requirements**  Python 3.8+, PyTorch 2.1+, torchvision, Ultralytics 8.3.x
+
+---
 
 ## 💻 Usage
 
-### Training
+### 1 · Training
 
 ```bash
-# Basic training
-python train_5d.py
+python train_5d.py          # trains on VOC 2012 with synthetic depth+thermal
 ```
 
-### Inference
+### 2 · Inference (post-processed boxes + GPS)
 
 ```python
 import torch
-from Custom5DYOLOModel import Custom5DYOLOModel
+from train_5d import YOLO5D          # model class lives in the training script
 
-# Load model
-model = Custom5DYOLOModel()
-model.load_state_dict(torch.load("best_5d_yolo_with_gps.pt"))
-model.eval()
+model = YOLO5D().eval()
+model.load_state_dict(torch.load("ckpts/yolo5d_best.pt", map_location="cpu"))
 
-# Prepare 5-channel input (RGB + depth + thermal)
-rgb_img = torch.rand(3, 320, 320)  # Your RGB image
-depth_map = torch.rand(1, 320, 320)  # Your depth map
-thermal_map = torch.rand(1, 320, 320)  # Your thermal map
-input_tensor = torch.cat([rgb_img, depth_map, thermal_map], dim=0).unsqueeze(0)
+rgb      = torch.rand(3, 320, 320)
+depth    = torch.rand(1, 320, 320)
+thermal  = torch.rand(1, 96, 96)
+rgbd     = torch.cat([rgb, depth]).unsqueeze(0)
 
-# Inference
-with torch.no_grad():
-    outputs = model(input_tensor)
+results, gps = model.predict(rgbd, thermal)   # NMS boxes + (1,2) GPS
 
-# Get predictions
-gps_coords = outputs['gps_coords'].numpy()[0]
-print(f"Predicted GPS: [{gps_coords[0]:.4f}, {gps_coords[1]:.4f}]")
+print("boxes:", results[0].boxes.xyxy)
+print("GPS  :", gps.squeeze().tolist())
 ```
 
-## 🧠 Model Architecture
+---
 
-The model extends YOLOv8 with:
+## 🧠 Architecture
 
-1. **Modified Input Layer**: First convolutional layer modified to accept 5 channels
-2. **Feature Extractor**: YOLOv8 backbone for powerful feature extraction
-3. **Object Detection Head**: Standard YOLOv8 detection head
-4. **GPS Regression Head**: Custom head that predicts X,Y GPS coordinates
-
-## 📊 Performance
-
-| Model | Input Size | Dataset | GPS Error | Inference Time (CPU) |
-|-------|------------|---------|-----------|----------------------|
-| 5D-YOLO-n | 320×320 | VOC2012 | ±0.25 | ~150ms |
-
-* GPS predictions trained on fixed coordinates (45, 45)
-* Object detection metrics not evaluated as focus was on GPS prediction
-
-## 🔍 Project Structure
-
-```
-.
-├── train_5d.py          # Main training script
-├── best_5d_yolo_with_gps.pt   # Best model weights
-├── final_5d_yolo_with_gps.pt  # Final model weights
-├── data/                # Dataset directory
-├── results/             # Visualization results
-└── README.md            # This file
-```
-
-## 🔄 Customization
-
-### Adding Real Depth and Thermal Data
-
-Replace the random noise generators with real sensor data:
-
-```python
-# In VOCExtended.__getitem__
-# Instead of random noise:
-depth_map = load_depth_map(depth_path)  # Load your depth map
-thermal_map = load_thermal_map(thermal_path)  # Load your thermal map
-```
-
-### Training with Different GPS Coordinates
-
-Modify the GPS target values to match your data:
-
-```python
-# In VOCExtended.__getitem__
-# Instead of fixed coordinates:
-gps_coords = torch.tensor([lat, lon], dtype=torch.float32)  # Your GPS data
-```
-
-## Implementation Details
-
-This implementation:
-
-1. **Modifies YOLOv8**: 
-   - Changes the first convolutional layer to accept 5 channels instead of 3
-   - Preserves original weights for RGB channels
-   - Initializes new depth and thermal channels with appropriate weights
-
-2. **Creates GPS Head**:
-   - Adds a regression head that predicts GPS coordinates
-   - Uses adaptive pooling to handle different feature map sizes
-   - Implements a custom loss function for GPS coordinate prediction
-
-3. **Data Processing**:
-   - Automatically downloads Pascal VOC dataset
-   - Generates synthetic depth and thermal maps
-   - Sets fixed GPS coordinates (45, 45) for training
-   - Visualizes results with ground truth boxes and GPS predictions
-  
-4. **PipeLine**:
-   
+```mermaid
 flowchart LR
-    %% ───────────── Inputs ─────────────
-    RGB["RGB<br>(3 × H×W)"]
-    DEPTH["Depth<br>(1 × H×W)"]
-    THERM["Thermal<br>(1 × 96×96)"]
+    %% Inputs
+    RGB["RGB<br>(3×H×W)"]
+    DEPTH["Depth<br>(1×H×W)"]
+    THERM["Thermal<br>(1×96×96)"]
 
-    %% 4-channel stack
     RGB ---|"concat"| DEPTH
-    RGBD[/"RGB-D<br>(4 × H×W)"/]
+    RGBD[/"RGB-D<br>(4×H×W)"/]
 
-    %% ───────── Blocks ─────────
     subgraph Front-End
         ADAPT["RGBD2RGB<br>1×1 conv"]:::block
     end
 
-    subgraph YOLOv8 Backbone  &  Neck
-        YBACK["YOLOv8<br>layers 0-6"]:::block
-        FUSE["〈+ 0.1 · Thermal 〉<br>(hook)"]:::fuse
-        YNECK["YOLOv8<br>layers 7-end"]:::block
+    subgraph YOLOv8 Backbone + Neck
+        Y0["layers 0-6"]:::block
+        FUSE["(+ 0.1 · thermal)<br><i>hook</i>"]:::fuse
+        Y1["layers 7-end"]:::block
     end
 
     subgraph Heads
-        DET["Detection Head<br>(boxes + scores)"]:::head
-        GPS["GPS Head<br>(MLP → lat,lon)"]:::head
+        DET["Detection<br>head"]:::head
+        GPS["GPS MLP"]:::head
     end
 
-    %% ───────── Connections ─────────
-    RGBD  --> ADAPT --> YBACK
-    THERM -->|ThermalProcessor| TPROC["Thermal<br>features"]:::block
+    RGBD  --> ADAPT --> Y0
+    THERM -->|Thermal-CNN| TPROC["thermal<br>feat"]:::block
     TPROC -.->|hook| FUSE
-    YBACK --> FUSE --> YNECK
-    YNECK --> DET
-    YNECK --> GPS
+    Y0 --> FUSE --> Y1
+    Y1 --> DET
+    Y1 --> GPS
 
-    %% ───────── Styles ─────────
-    classDef block  fill:#f6f8fa,stroke:#333,stroke-width:1px;
-    classDef head   fill:#dff0d8,stroke:#2b542c,stroke-width:1px;
-    classDef fuse   fill:#fff4e5,stroke:#e69500,stroke-dasharray: 5 3;
+    classDef block fill:#f6f8fa,stroke:#333;
+    classDef head  fill:#d5f5e3,stroke:#1e8449;
+    classDef fuse  fill:#fff4e5,stroke:#e67e22,stroke-dasharray:5 3;
+```
 
+* **RGB-D Adapter** – collapses 4 → 3 channels so YOLO can ingest the frame.
+* **Thermal Processor** – embeds & upsamples the thermal map.
+* **Hook** – adds thermal features into layer-6 activations *during* forward pass.
+* **Heads** – YOLO detection head predicts boxes/classes; a small MLP regresses GPS.
 
-## 🔄 TODO
+---
 
-- [ ] Add support for real depth and thermal datasets
-- [ ] Implement loss weighting between detection and GPS tasks
-- [ ] Add evaluation metrics for multi-modal detection
-- [ ] Optimize for edge devices and real-time inference
-- [ ] Create TensorRT and ONNX export options
+## 📊 Current Demo Numbers (synthetic)
+
+| Model     | Input | Dataset    | Det loss ↓ | GPS loss ↓ |
+| --------- | ----- | ---------- | ---------- | ---------- |
+| 5D-YOLO-n | 320   | VOC 2012\* | 7.7        | 1.8 e-5    |
+
+\* Depth / thermal and GPS are synthetic placeholders — detection loss is
+real but GPS numbers are meaningless until real coordinates are supplied.
+
+---
+
+## 🗂 Project Structure
+
+```
+├── train_5d.py               # full training + model definition
+├── ckpts/                    # saved checkpoints
+├── data/                     # VOC dataset will download here
+└── README.md
+```
+
+---
+
+## 🔄 Customisation Tips
+
+* **Plug in real depth & thermal**
+  Replace the random tensors in `VOCExtended.__getitem__`.
+
+* **Use real GPS labels**
+  Swap the fixed `[0.5,0.5]` with your `(lat_norm, lon_norm)` values.
+
+* **Tune loss balance**
+  Adjust `LAMBDA_GPS` to weight GPS vs. detection learning.
+
+---
+
+## 📋 TODO
+
+* [ ] Integrate real multi-sensor datasets (NYU Depth, FLIR, etc.)
+* [ ] Hyper-parameter sweep for GPS/det loss weighting
+* [ ] Export ONNX / TensorRT for edge deployment
+* [ ] Benchmark on Jetson & Raspberry Pi
+
+---
 
 ## 📄 License
 
-This project is released under the MIT License.
+Released under the MIT License.
+
+---
 
 ## 🙏 Acknowledgements
 
-- [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) for the base object detection framework
-- [Pascal VOC](http://host.robots.ox.ac.uk/pascal/VOC/) for the dataset
+* **[Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)** – fantastic open-source detector.
+* Pascal VOC for the benchmark images.
+
+```
+
+Copy-paste this markdown into `README.md` and push — GitHub will render
+the badges, code blocks, and the Mermaid diagram (if you enable the
+Mermaid preview in repo → Settings → Features → “Allow Mermaid”).
+```
