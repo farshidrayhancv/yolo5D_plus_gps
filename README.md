@@ -8,7 +8,6 @@ for every frame.
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)  
 [![PyTorch 2.1+](https://img.shields.io/badge/PyTorch-2.1%2B-red.svg)](https://pytorch.org/)  
-[![Ultralytics 8.3.x](https://img.shields.io/badge/Ultralytics-YOLOv8-8.3.x-green.svg)](https://github.com/ultralytics/ultralytics)  
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 
