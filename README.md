@@ -145,6 +145,7 @@ This implementation:
    - Visualizes results with ground truth boxes and GPS predictions
   
 4. **PipeLine**:
+   
    flowchart TD
     %% ================== DATA PIPELINE ==================
     A[Pascal-VOC image\n+ synthetic Depth + Thermal + GPS] --> B[DataLoader<br/>(batch & collate)]
@@ -176,7 +177,6 @@ This implementation:
 
     %% ================ SCRIPT ENTRY =====================
     Q -.-> R[train()/val()<br/>main()]
-
 
 ## 🔄 TODO
 
