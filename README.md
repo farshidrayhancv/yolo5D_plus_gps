@@ -20,7 +20,7 @@ Perfect for robotics, autonomous vehicles, and multi-sensor fusion applications 
 
 ```bash
 # Clone repository
-git clone https://github.com/username/5d-yolo-gps.git
+git clone https://github.com/farshidrayhancv/yolo5D_plus_gps.git
 cd 5d-yolo-gps
 
 # Install dependencies
