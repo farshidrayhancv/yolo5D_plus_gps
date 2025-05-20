@@ -172,9 +172,4 @@ Released under the MIT License.
 * **[Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)** – fantastic open-source detector.
 * Pascal VOC for the benchmark images.
 
-```
 
-Copy-paste this markdown into `README.md` and push — GitHub will render
-the badges, code blocks, and the Mermaid diagram (if you enable the
-Mermaid preview in repo → Settings → Features → “Allow Mermaid”).
-```
