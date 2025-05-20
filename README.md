@@ -30,7 +30,7 @@ git clone https://github.com/farshidrayhancv/yolo5D_plus_gps.git
 cd yolo5D_plus_gps
 
 
-## (y) Core dependencies
+##  Core dependencies
 pip install torch torchvision matplotlib tqdm pillow ultralytics==8.3.140
 
 
