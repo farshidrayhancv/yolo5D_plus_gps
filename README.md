@@ -146,37 +146,45 @@ This implementation:
   
 4. **PipeLine**:
    
-   flowchart TD
-    %% ================== DATA PIPELINE ==================
-    A[Pascal-VOC image\n+ synthetic Depth + Thermal + GPS] --> B[DataLoader<br/>(batch & collate)]
+flowchart LR
+    %% ───────────── Inputs ─────────────
+    RGB["RGB<br>(3 × H×W)"]
+    DEPTH["Depth<br>(1 × H×W)"]
+    THERM["Thermal<br>(1 × 96×96)"]
 
-    %% ==================== MODEL ========================
-    subgraph YOLO5D
-        direction LR
-        B --> C[RGBD2RGB<br/>4→3 1×1 conv]
-        C --> D[YOLOv8-n Backbone]
-        B -->|Thermal| E[ThermalProcessor<br/>embed + upsample]
-        E --> F{{Layer 6<br/>fusion hook}}
-        F --> D
-        D --> G[Detection head]      %% internal YOLO head
-        D --> H[GPSHead<br/>lazy MLP]
+    %% 4-channel stack
+    RGB ---|"concat"| DEPTH
+    RGBD[/"RGB-D<br>(4 × H×W)"/]
+
+    %% ───────── Blocks ─────────
+    subgraph Front-End
+        ADAPT["RGBD2RGB<br>1×1 conv"]:::block
     end
 
-    %% ================ TRAINING LOSSES ==================
-    G --> I[Detection Loss<br/>(v8DetectionLoss)]
-    H --> J[GPS Loss<br/>(MSE)]
-    I & J --> K[Total Loss = I + λ·J]
-    K --> L[Adam Optimiser<br/>LR_backbone 1e-4<br/>LR_new 1e-3]
-    L --> M[(Weights update)]
-    M --> Q[Checkpoint<br/>yolo5d_*.pt]
+    subgraph YOLOv8 Backbone  &  Neck
+        YBACK["YOLOv8<br>layers 0-6"]:::block
+        FUSE["〈+ 0.1 · Thermal 〉<br>(hook)"]:::fuse
+        YNECK["YOLOv8<br>layers 7-end"]:::block
+    end
 
-    %% ================== INFERENCE ======================
-    G -. raw preds .-> N[Post-processing<br/>Ultralytics new_results]
-    N --> O[Final Detections]
-    H --> P[GPS Output]
+    subgraph Heads
+        DET["Detection Head<br>(boxes + scores)"]:::head
+        GPS["GPS Head<br>(MLP → lat,lon)"]:::head
+    end
 
-    %% ================ SCRIPT ENTRY =====================
-    Q -.-> R[train()/val()<br/>main()]
+    %% ───────── Connections ─────────
+    RGBD  --> ADAPT --> YBACK
+    THERM -->|ThermalProcessor| TPROC["Thermal<br>features"]:::block
+    TPROC -.->|hook| FUSE
+    YBACK --> FUSE --> YNECK
+    YNECK --> DET
+    YNECK --> GPS
+
+    %% ───────── Styles ─────────
+    classDef block  fill:#f6f8fa,stroke:#333,stroke-width:1px;
+    classDef head   fill:#dff0d8,stroke:#2b542c,stroke-width:1px;
+    classDef fuse   fill:#fff4e5,stroke:#e69500,stroke-dasharray: 5 3;
+
 
 ## 🔄 TODO
 
