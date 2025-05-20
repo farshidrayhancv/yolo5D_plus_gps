@@ -25,9 +25,10 @@ detection and coarse localisation must be learned from multiple sensors.
 
 ## 🛠 Installation
 
-
+```bash
 git clone https://github.com/farshidrayhancv/yolo5D_plus_gps.git
 cd yolo5D_plus_gps
+```
 
 
 ##  Core dependencies
