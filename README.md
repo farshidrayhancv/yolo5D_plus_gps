@@ -11,7 +11,7 @@ for every frame.
 [![Ultralytics 8.3.x](https://img.shields.io/badge/Ultralytics-YOLOv8-8.3.x-green.svg)](https://github.com/ultralytics/ultralytics)  
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
+
 
 ## 📋 Overview
 
@@ -23,7 +23,6 @@ for every frame.
 Ideal for robotics, autonomous driving, or any scenario where object
 detection and coarse localisation must be learned from multiple sensors.
 
----
 
 ## 🛠 Installation
 
@@ -33,11 +32,11 @@ cd yolo5D_plus_gps
 
 # core dependencies
 pip install torch torchvision matplotlib tqdm pillow ultralytics==8.3.140
-
+---
 
 > **Requirements**  Python 3.8+, PyTorch 2.1+, torchvision, Ultralytics 8.3.x
 
----
+
 
 ## 💻 Usage
 
