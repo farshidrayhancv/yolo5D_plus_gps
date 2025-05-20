@@ -143,6 +143,40 @@ This implementation:
    - Generates synthetic depth and thermal maps
    - Sets fixed GPS coordinates (45, 45) for training
    - Visualizes results with ground truth boxes and GPS predictions
+  
+4. **PipeLine**:
+   flowchart TD
+    %% ================== DATA PIPELINE ==================
+    A[Pascal-VOC image\n+ synthetic Depth + Thermal + GPS] --> B[DataLoader<br/>(batch & collate)]
+
+    %% ==================== MODEL ========================
+    subgraph YOLO5D
+        direction LR
+        B --> C[RGBD2RGB<br/>4→3 1×1 conv]
+        C --> D[YOLOv8-n Backbone]
+        B -->|Thermal| E[ThermalProcessor<br/>embed + upsample]
+        E --> F{{Layer 6<br/>fusion hook}}
+        F --> D
+        D --> G[Detection head]      %% internal YOLO head
+        D --> H[GPSHead<br/>lazy MLP]
+    end
+
+    %% ================ TRAINING LOSSES ==================
+    G --> I[Detection Loss<br/>(v8DetectionLoss)]
+    H --> J[GPS Loss<br/>(MSE)]
+    I & J --> K[Total Loss = I + λ·J]
+    K --> L[Adam Optimiser<br/>LR_backbone 1e-4<br/>LR_new 1e-3]
+    L --> M[(Weights update)]
+    M --> Q[Checkpoint<br/>yolo5d_*.pt]
+
+    %% ================== INFERENCE ======================
+    G -. raw preds .-> N[Post-processing<br/>Ultralytics new_results]
+    N --> O[Final Detections]
+    H --> P[GPS Output]
+
+    %% ================ SCRIPT ENTRY =====================
+    Q -.-> R[train()/val()<br/>main()]
+
 
 ## 🔄 TODO
 
