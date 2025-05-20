@@ -29,7 +29,7 @@ detection and coarse localization must be learned from multiple sensors.
 ## 🛠 Installation
 
 ```bash
-git clone https://github.com/yourusername/yolo5D_plus_gps.git
+git clone https://github.com/farshidrayhancv/yolo5D_plus_gps.git
 cd yolo5D_plus_gps
 ```
 
