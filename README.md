@@ -1,4 +1,5 @@
-````markdown
+
+
 # 5D YOLOv8 + GPS — Multi-Modal Object Detection and Localisation
 
 A PyTorch implementation of Ultralytics **YOLOv8** extended to consume  
@@ -32,7 +33,7 @@ cd yolo5D_plus_gps
 
 # core dependencies
 pip install torch torchvision matplotlib tqdm pillow ultralytics==8.3.140
-````
+
 
 > **Requirements**  Python 3.8+, PyTorch 2.1+, torchvision, Ultralytics 8.3.x
 
