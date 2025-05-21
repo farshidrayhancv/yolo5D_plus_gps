@@ -45,24 +45,39 @@ pip install torch torchvision matplotlib tqdm pillow ultralytics==8.3.140
 ### 1 · Training
 
 ```bash
-python train_5d.py          # trains on VOC 2012 with synthetic depth+thermal
+python train.py          # trains on VOC 2012 with synthetic depth+thermal
 ```
 
-### 2 · Inference (post-processed boxes + GPS)
+#### Training Options
+
+```bash
+python train.py --batch-size 16 --epochs 50  # override config values
+python train.py --resume best                # resume from best checkpoint
+```
+
+### 2 · Inference
+
+```bash
+python inference.py --image path/to/image.jpg  # run inference on image
+python inference.py --image path/to/image.jpg --output results.png  # save visualization
+```
+
+### 3 · Programmatic Usage
 
 ```python
 import torch
-from train_5d import YOLO5D          # Import model class
+from models import YOLO5D
+import config as cfg
 
 # Load model
 model = YOLO5D().eval()
 model.load_state_dict(torch.load("ckpts/yolo5d_best.pt", map_location="cpu"))
 
 # Prepare input tensors
-rgb = torch.rand(3, 320, 320)           # RGB image
-depth = torch.rand(1, 320, 320)         # Depth map 
-thermal = torch.rand(1, 96, 96)         # Thermal image (lower resolution)
-rgbd = torch.cat([rgb, depth]).unsqueeze(0)  # Combine for model input
+rgb = torch.rand(3, cfg.IMG_SIZE, cfg.IMG_SIZE)           # RGB image
+depth = torch.rand(1, cfg.IMG_SIZE, cfg.IMG_SIZE)         # Depth map 
+thermal = torch.rand(1, cfg.THERMAL_SIZE, cfg.THERMAL_SIZE)  # Thermal image
+rgbd = torch.cat([rgb, depth]).unsqueeze(0)               # Combine for model input
 
 # Run inference
 results, gps = model.predict(rgbd, thermal)   # Returns NMS boxes + (1,2) GPS
@@ -166,10 +181,15 @@ flowchart LR
 ## 🗂 Project Structure
 
 ```
-├── train_5d.py               # Main training script & model definition
-├── ckpts/                    # Saved model checkpoints
-├── data/                     # VOC dataset downloads here automatically
-└── README.md                 # This file
+├── config.py               # Configuration parameters
+├── models.py               # Model definition and components
+├── dataset.py              # Dataset and data loading functions
+├── utils.py                # Utility functions
+├── train.py                # Training script
+├── inference.py            # Inference script
+├── ckpts/                  # Saved model checkpoints
+├── data/                   # VOC dataset downloads here automatically
+└── README.md               # This file
 ```
 
 ---
@@ -181,15 +201,15 @@ flowchart LR
 This implementation currently uses synthetic depth, thermal, and GPS data. To use real data:
 
 1. **Real depth & thermal inputs**:
-   * Modify `VOCExtended.__getitem__` to load real depth and thermal data
-   * Adjust `ThermalProcessor` parameters based on your thermal sensor characteristics
+   * Modify `VOCExtended.__getitem__` in `dataset.py` to load real depth and thermal data
+   * Adjust `ThermalProcessor` parameters in `models.py` based on your thermal sensor characteristics
 
 2. **Real GPS labels**:
    * Replace the fixed `[0.5, 0.5]` GPS coordinates with actual normalized GPS values
    * Consider data normalization strategies for GPS coordinates
 
 3. **Performance tuning**:
-   * Adjust `LAMBDA_GPS` to balance detection vs. localization learning
+   * Adjust `LAMBDA_GPS` in `config.py` to balance detection vs. localization learning
    * Modify learning rates based on your dataset characteristics
    * Consider freezing backbone for transfer learning scenarios
 
